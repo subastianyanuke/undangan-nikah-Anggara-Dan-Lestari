@@ -3,6 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- META TAG UNTUK THUMBNAIL WHATSAPP (OPEN GRAPH) -->
+<meta property="og:title" content="Wedding Invitation" />
+<meta property="og:description" content="Kami mengundang Anda untuk berbagi kebahagiaan di hari bahagia kami." />
+<meta property="og:image" content="https://subastianyanuke.github.io/undangan-nikah-Anggara-Dan-Lestari/chat.jpg" />
+<meta property="og:url" content="https://subastianyanuke.github.io/undangan-nikah-Anggara-Dan-Lestari/" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+
 <title>Wedding Admin — Manajemen Undangan Pernikahan</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&display=swap" rel="stylesheet">
@@ -534,6 +543,15 @@
                   <input type="url" class="input-field pl-9" id="invitationLink" placeholder="https://undangan.kami/..." oninput="updateMempelai()">
                   <i class="fa-solid fa-link absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)] text-sm"></i>
                 </div>
+                <p class="text-xs text-[var(--muted)] mt-1">*Pastikan link dimulai dengan http:// atau https://</p>
+              </div>
+              <div>
+                <label class="field-label">URL Thumbnail (Gambar Open Graph)</label>
+                <div class="relative">
+                  <input type="url" class="input-field pl-9" id="ogImageUrl" placeholder="https://contoh.com/gambar.jpg" oninput="updateMempelai()">
+                  <i class="fa-solid fa-image absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)] text-sm"></i>
+                </div>
+                <p class="text-xs text-[var(--muted)] mt-1">*URL gambar online agar muncul thumbnail di WhatsApp.</p>
               </div>
             </div>
           </div>
@@ -675,6 +693,7 @@ let state = {
   bride: { fullName: '', nickname: '' },
   shortName: '',
   invitationLink: '',
+  ogImageUrl: 'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=1000&auto=format&fit=crop',
   messageTemplate: DEFAULT_TEMPLATE,
   guests: []
 };
@@ -713,7 +732,23 @@ function updateMempelai() {
   state.bride.nickname = document.getElementById('brideNickname').value;
   state.shortName = document.getElementById('shortName').value;
   state.invitationLink = document.getElementById('invitationLink').value;
-  saveState(); updateHeroName(); updateMonogram(); renderPreview();
+  state.ogImageUrl = document.getElementById('ogImageUrl').value;
+  saveState(); updateHeroName(); updateMonogram(); renderPreview(); updateOpenGraphTags();
+}
+
+function updateOpenGraphTags() {
+  const title = state.shortName || `${state.groom.fullName || '?'} & ${state.bride.fullName || '?'}`;
+  const description = `Kami mengundang Anda untuk berbagi kebahagiaan di hari bahagia kami.`;
+  
+  document.querySelector('meta[property="og:title"]').setAttribute("content", `The Wedding of ${title}`);
+  document.querySelector('meta[property="og:description"]').setAttribute("content", description);
+  
+  if(state.ogImageUrl) {
+    document.querySelector('meta[property="og:image"]').setAttribute("content", state.ogImageUrl);
+  }
+  if(state.invitationLink) {
+    document.querySelector('meta[property="og:url"]').setAttribute("content", state.invitationLink);
+  }
 }
 
 function updateHeroName() {
@@ -813,7 +848,6 @@ function sendWhatsApp(id) {
   const guest = state.guests.find(g => g.id === id);
   if (!guest) return;
   
-  // Menggunakan format wa.me tanpa nomor tujuan, agar user bisa memilih kontak secara manual di WhatsApp
   const message = encodeURIComponent(generateMessage(guest));
   const url = `https://wa.me/?text=${message}`;
   
@@ -847,7 +881,7 @@ function sendAllPending() {
           const url = `https://wa.me/?text=${message}`;
           window.open(url, '_blank');
           markAsSent(guest.id);
-        }, index * 1500); // Delay 1.5 detik per tab agar tidak tertutup popup blocker dan memberi waktu memilih kontak
+        }, index * 1500);
       });
       showToast(`Mengirim ${pendingGuests.length} pesan...`, 'success');
     }
@@ -952,6 +986,7 @@ function importData(event) {
           bride: imported.bride || { fullName: '', nickname: '' },
           shortName: imported.shortName || '',
           invitationLink: imported.invitationLink || '',
+          ogImageUrl: imported.ogImageUrl || 'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=1000&auto=format&fit=crop',
           messageTemplate: imported.messageTemplate || DEFAULT_TEMPLATE,
           guests: imported.guests || []
         };
@@ -966,7 +1001,15 @@ function importData(event) {
 function resetData() {
   showConfirmModal('Reset Semua Data', 'PERINGATAN: Semua data mempelai, template, dan daftar tamu akan dihapus permanen. Lanjutkan?', () => {
     localStorage.removeItem('weddingAdminData');
-    state = { groom: { fullName: '', nickname: '' }, bride: { fullName: '', nickname: '' }, shortName: '', invitationLink: '', messageTemplate: DEFAULT_TEMPLATE, guests: [] };
+    state = { 
+      groom: { fullName: '', nickname: '' }, 
+      bride: { fullName: '', nickname: '' }, 
+      shortName: '', 
+      invitationLink: '', 
+      ogImageUrl: 'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=1000&auto=format&fit=crop',
+      messageTemplate: DEFAULT_TEMPLATE, 
+      guests: [] 
+    };
     hydrateForm(); renderAll(); showToast('Semua data telah direset', 'info');
   });
 }
@@ -978,11 +1021,19 @@ function hydrateForm() {
   document.getElementById('brideNickname').value = state.bride.nickname || '';
   document.getElementById('shortName').value = state.shortName || '';
   document.getElementById('invitationLink').value = state.invitationLink || '';
+  document.getElementById('ogImageUrl').value = state.ogImageUrl || '';
   document.getElementById('messageTemplate').value = state.messageTemplate || DEFAULT_TEMPLATE;
   document.getElementById('charCount').textContent = `${state.messageTemplate.length} karakter`;
 }
 
-function renderAll() { updateHeroName(); updateMonogram(); renderPreview(); renderGuests(); updateStats(); }
+function renderAll() { 
+  updateHeroName(); 
+  updateMonogram(); 
+  renderPreview(); 
+  renderGuests(); 
+  updateStats(); 
+  updateOpenGraphTags(); 
+}
 
 document.getElementById('guestForm').addEventListener('submit', (e) => {
   e.preventDefault();
